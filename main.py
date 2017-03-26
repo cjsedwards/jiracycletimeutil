@@ -1,5 +1,6 @@
 import requests
 import optparse
+import json
 
 if __name__ == '__main__':
     parser = optparse.OptionParser()
@@ -14,6 +15,8 @@ if __name__ == '__main__':
         parser.print_help()
         exit()
 
-    r = requests.get( options.jira_url + '/rest/api/latest/issue/' + options.issue, auth=(options.user, options.password) )
+    r = requests.get( options.jira_url + '/rest/api/latest/issue/' + options.issue + "?expand=changelog", auth=(options.user, options.password) )
 
-    print(r.text)
+    parsed = json.loads(r.text)
+
+    print(json.dumps(parsed, indent=4, sort_keys=True))
