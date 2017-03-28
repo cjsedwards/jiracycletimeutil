@@ -69,8 +69,9 @@ if __name__ == '__main__':
     headderrow = getheaderrow()
     writer.writerow( headderrow )
 
-    issues = parsed["issues"]
-    for issue in issues:
-        rowdict = getFieldsFromIssue( issue )
-        row = getCSVrow( headderrow, rowdict )
-        writer.writerow( row )
+    for result in parsed:
+        issues = result["issues"]
+        for issue in issues:
+            rowdict = getFieldsFromIssue( issue )
+            row = getCSVrow( headderrow, rowdict )
+            writer.writerow( row )

@@ -1,5 +1,6 @@
 import requests
 import optparse
+import json
 
 if __name__ == '__main__':
     parser = optparse.OptionParser()
@@ -14,8 +15,22 @@ if __name__ == '__main__':
         parser.print_help()
         exit()
 
-    payload = {"jql":options.query, "expand":"changelog"}
+    results = []
 
-    r = requests.get( options.jira_url + '/rest/api/2/search', params=payload, auth=(options.user, options.password) )
+    count = 0
+    while True:
+        payload = {"jql":options.query, "expand":"changelog", "startAt":str(count)}
 
-    print (r.text)
+        r = requests.get( options.jira_url + '/rest/api/2/search', params=payload, auth=(options.user, options.password) )
+
+        parsed = json.loads(r.text)
+        total = int(parsed["total"])
+        maxResults = int(parsed["maxResults"])
+
+        results.append(parsed)
+
+        count += maxResults
+        if (count >= total):
+            break
+
+    print(json.dumps(results))
