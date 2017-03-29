@@ -17,6 +17,7 @@ def getheaderrow():
     headerRow.append("Resolved Date")
     headerRow.append("Fix Version/s")
     headerRow.append("Product Team")
+    headerRow.append("Story Point")
     return headerRow
 
 def getInProgressDate( changelog ):
@@ -51,6 +52,7 @@ def getFieldsFromIssue( issue ):
     rowdict["Resolved Date"] = fields["resolutiondate"]
     rowdict["Fix Version/s"] = fields["fixVersions"][0]["name"] if len(fields["fixVersions"]) > 0 else ""
     rowdict["Product Team"] = fields["customfield_13321"]["value"]
+    rowdict["Story Point"] = fields["customfield_11422"] if "customfield_11422" in fields else ""
     return rowdict
 
 def getCSVrow( headerrow, rowdict ):
