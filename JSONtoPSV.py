@@ -1,6 +1,7 @@
 import sys
 import json
 import csv
+import datetime
 
 def getheaderrow():
     headerRow = list()
@@ -17,7 +18,8 @@ def getheaderrow():
     headerRow.append("Resolved Date")
     headerRow.append("Fix Version/s")
     headerRow.append("Product Team")
-    headerRow.append("Story Point")
+    headerRow.append("Story Points")
+    headerRow.append("Cycle Time(Days)")
     return headerRow
 
 def getInProgressDate( changelog ):
@@ -47,12 +49,27 @@ def getFieldsFromIssue( issue ):
     rowdict["Reporter"] = fields["reporter"]["displayName"]
     rowdict["Creator"] = fields["creator"]["displayName"]
 
-    rowdict["Created Date"] = fields["created"]
-    rowdict["In Progress Date"] = getInProgressDate( issue["changelog"]["histories"])
-    rowdict["Resolved Date"] = fields["resolutiondate"]
+    createdDate = fields["created"]
+    createdDate = createdDate[:10]
+    createdDate = datetime.datetime.strptime(createdDate,"%Y-%m-%d").date() if len(createdDate) > 0 else createdDate
+    
+    startDate = getInProgressDate( issue["changelog"]["histories"])
+    startDate = startDate[:10]
+    startDate = datetime.datetime.strptime(startDate,"%Y-%m-%d").date() if len(startDate) > 0 else startDate
+
+    endDate = fields["resolutiondate"]
+    endDate = endDate[:10]
+    endDate = datetime.datetime.strptime(endDate,"%Y-%m-%d").date() if len(endDate) > 0 else endDate
+
+    cycleTime = (endDate - startDate).days if (isinstance(endDate,datetime.date) and isinstance(startDate,datetime.date)) else ""
+    
+    rowdict["Created Date"] = createdDate
+    rowdict["In Progress Date"] = startDate
+    rowdict["Resolved Date"] = endDate
     rowdict["Fix Version/s"] = fields["fixVersions"][0]["name"] if len(fields["fixVersions"]) > 0 else ""
     rowdict["Product Team"] = fields["customfield_13321"]["value"]
-    rowdict["Story Point"] = fields["customfield_11422"] if "customfield_11422" in fields else ""
+    rowdict["Story Points"] = fields["customfield_11422"] if "customfield_11422" in fields else ""
+    rowdict["Cycle Time(Days)"] = cycleTime
     return rowdict
 
 def getCSVrow( headerrow, rowdict ):
