@@ -2,6 +2,7 @@ import sys
 import json
 import csv
 import datetime
+import numpy
 
 def getheaderrow():
     headerRow = list()
@@ -52,7 +53,7 @@ def getFieldsFromIssue( issue ):
     createdDate = fields["created"]
     createdDate = createdDate[:10]
     createdDate = datetime.datetime.strptime(createdDate,"%Y-%m-%d").date() if len(createdDate) > 0 else createdDate
-    
+
     startDate = getInProgressDate( issue["changelog"]["histories"])
     startDate = startDate[:10]
     startDate = datetime.datetime.strptime(startDate,"%Y-%m-%d").date() if len(startDate) > 0 else startDate
@@ -61,8 +62,8 @@ def getFieldsFromIssue( issue ):
     endDate = endDate[:10]
     endDate = datetime.datetime.strptime(endDate,"%Y-%m-%d").date() if len(endDate) > 0 else endDate
 
-    cycleTime = (endDate - startDate).days if (isinstance(endDate,datetime.date) and isinstance(startDate,datetime.date)) else ""
-    
+    cycleTime = numpy.busday_count(startDate, endDate) if (isinstance(endDate,datetime.date) and isinstance(startDate,datetime.date)) else ""
+
     rowdict["Created Date"] = createdDate
     rowdict["In Progress Date"] = startDate
     rowdict["Resolved Date"] = endDate
