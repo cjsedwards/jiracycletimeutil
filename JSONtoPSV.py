@@ -55,11 +55,11 @@ def getFieldsFromIssue( issue ):
     createdDate = datetime.datetime.strptime(createdDate,"%Y-%m-%d").date() if len(createdDate) > 0 else createdDate
 
     startDate = getInProgressDate( issue["changelog"]["histories"])
-    startDate = startDate[:10]
+    startDate = startDate[:10] if startDate is not None else ""
     startDate = datetime.datetime.strptime(startDate,"%Y-%m-%d").date() if len(startDate) > 0 else startDate
 
     endDate = fields["resolutiondate"]
-    endDate = endDate[:10]
+    endDate = endDate[:10] if endDate is not None else ""
     endDate = datetime.datetime.strptime(endDate,"%Y-%m-%d").date() if len(endDate) > 0 else endDate
 
     cycleTime = numpy.busday_count(startDate, endDate) if (isinstance(endDate,datetime.date) and isinstance(startDate,datetime.date)) else ""
