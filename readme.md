@@ -4,3 +4,8 @@ The primary use case I was trying to solve was to calculate cycle times. The sta
 
 Usage:
 python3 queryJira.py --user=USERNAME --password=PASSWORD --jira=https://YOURJIRAURL --query="JQL QUERY HERE" | python JSONtoPSV.py > psvout.txt
+
+
+Required Packages:
+requests
+numpy
