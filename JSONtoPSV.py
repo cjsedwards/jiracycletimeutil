@@ -22,7 +22,6 @@ def getheaderrow():
     headerRow.append("Story Points")
     headerRow.append("Cycle Time(Days)")
     headerRow.append("Days In Progress")
-    headerRow.append("Status Updates")
     return headerRow
 
 def getCleanDate( jiraDate ):
@@ -30,22 +29,6 @@ def getCleanDate( jiraDate ):
     jiraDate = datetime.datetime.strptime(jiraDate,"%Y-%m-%d").date() if len(jiraDate) > 0 else jiraDate
     
     return jiraDate
-
-def getStatusChanges( changelog ):
-    statusUpdates = ""
-    statusChanges = list()
-    dateOfChanges = list()
-
-    sortedChangeLog = sorted(changelog, key=lambda x: x["created"])
-
-    for change in sortedChangeLog:
-        if( change["items"][0]["field"] == "status"):
-            toString = change["items"][0]["toString"]
-            statusUpdates = statusUpdates + toString + " - Date : " + change["created"] + " ; "
-            statusChanges.append(toString)
-            dateOfChanges.append(getCleanDate(change["created"]))
-
-    return statusUpdates
 
 def getActualDaysInProgress( changelog , resolutionDate ):
     daysInProgress = 0
@@ -116,7 +99,6 @@ def getFieldsFromIssue( issue ):
     rowdict["Story Points"] = fields["customfield_11422"] if "customfield_11422" in fields else ""
     rowdict["Cycle Time(Days)"] = cycleTime
     rowdict["Days In Progress"] = getActualDaysInProgress(issue["changelog"]["histories"], endDate)
-    rowdict["Status Updates"] = getStatusChanges(issue["changelog"]["histories"])
     return rowdict
 
 def getCSVrow( headerrow, rowdict ):
@@ -129,8 +111,6 @@ def getCSVrow( headerrow, rowdict ):
 
 if __name__ == '__main__':
     parsed = json.load(sys.stdin)
-    #with open('rawData1.json') as json_data:
-    #    parsed = json.load(json_data)
 
     writer = csv.writer(sys.stdout, delimiter='|', quotechar='', quoting=csv.QUOTE_NONE)
 
