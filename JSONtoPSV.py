@@ -21,11 +21,64 @@ def getheaderrow():
     headerRow.append("Product Team")
     headerRow.append("Story Points")
     headerRow.append("Cycle Time(Days)")
+    headerRow.append("Days In Progress")
+    headerRow.append("Status Updates")
     return headerRow
 
-def getInProgressDate( changelog ):
-    stateChanges = list()
+def getCleanDate( jiraDate ):
+    jiraDate = jiraDate[:10] if jiraDate is not None else ""
+    jiraDate = datetime.datetime.strptime(jiraDate,"%Y-%m-%d").date() if len(jiraDate) > 0 else jiraDate
+    
+    return jiraDate
 
+def getStatusChanges( changelog ):
+    statusUpdates = ""
+    statusChanges = list()
+    dateOfChanges = list()
+
+    sortedChangeLog = sorted(changelog, key=lambda x: x["created"])
+
+    for change in sortedChangeLog:
+        if( change["items"][0]["field"] == "status"):
+            toString = change["items"][0]["toString"]
+            statusUpdates = statusUpdates + toString + " - Date : " + change["created"] + " ; "
+            statusChanges.append(toString)
+            dateOfChanges.append(getCleanDate(change["created"]))
+
+    return statusUpdates
+
+def getActualDaysInProgress( changelog , resolutionDate ):
+    daysInProgress = 0
+    statusChanges = []
+    startDate = None
+    endDate = None
+  
+    sortedChangeLog = sorted(changelog, key=lambda x: x["created"])
+
+    for change in sortedChangeLog:
+        if( change["items"][0]["field"] == "status"):
+            toString = change["items"][0]["toString"]
+            statusChanges.append( (toString , getCleanDate(change["created"])) )
+
+    for statusChange in statusChanges:
+        if( "In Progress" in statusChange[0] ):
+            startDate = statusChange[1]
+            endDate = None
+        if("Open" in statusChange[0]):
+            endDate = statusChange[1]
+            daysInProgress = daysInProgress + (numpy.busday_count(startDate, endDate) if (isinstance(endDate,datetime.date) and isinstance(startDate,datetime.date)) else 0)
+ 
+    if(startDate != None and endDate == None):
+            endDate = resolutionDate
+            daysInProgress = daysInProgress + (numpy.busday_count(startDate, endDate) if (isinstance(endDate,datetime.date) and isinstance(startDate,datetime.date)) else 0)
+    
+    if(daysInProgress == 0):
+            endDate = resolutionDate
+            daysInProgress = numpy.busday_count(startDate, endDate) if (isinstance(endDate,datetime.date) and isinstance(startDate,datetime.date)) else 0
+ 
+    return daysInProgress
+
+def getInProgressDate( changelog ):
     sortedChangeLog = sorted(changelog, key=lambda x: x["created"])
 
     for change in sortedChangeLog:
@@ -50,18 +103,9 @@ def getFieldsFromIssue( issue ):
     rowdict["Reporter"] = fields["reporter"]["displayName"]
     rowdict["Creator"] = fields["creator"]["displayName"]
 
-    createdDate = fields["created"]
-    createdDate = createdDate[:10]
-    createdDate = datetime.datetime.strptime(createdDate,"%Y-%m-%d").date() if len(createdDate) > 0 else createdDate
-
-    startDate = getInProgressDate( issue["changelog"]["histories"])
-    startDate = startDate[:10] if startDate is not None else ""
-    startDate = datetime.datetime.strptime(startDate,"%Y-%m-%d").date() if len(startDate) > 0 else startDate
-
-    endDate = fields["resolutiondate"]
-    endDate = endDate[:10] if endDate is not None else ""
-    endDate = datetime.datetime.strptime(endDate,"%Y-%m-%d").date() if len(endDate) > 0 else endDate
-
+    createdDate = getCleanDate( fields["created"] )
+    startDate = getCleanDate( getInProgressDate( issue["changelog"]["histories"]) )
+    endDate = getCleanDate( fields["resolutiondate"] )
     cycleTime = numpy.busday_count(startDate, endDate) if (isinstance(endDate,datetime.date) and isinstance(startDate,datetime.date)) else ""
 
     rowdict["Created Date"] = createdDate
@@ -71,6 +115,8 @@ def getFieldsFromIssue( issue ):
     rowdict["Product Team"] = fields["customfield_13321"]["value"]
     rowdict["Story Points"] = fields["customfield_11422"] if "customfield_11422" in fields else ""
     rowdict["Cycle Time(Days)"] = cycleTime
+    rowdict["Days In Progress"] = getActualDaysInProgress(issue["changelog"]["histories"], endDate)
+    rowdict["Status Updates"] = getStatusChanges(issue["changelog"]["histories"])
     return rowdict
 
 def getCSVrow( headerrow, rowdict ):
@@ -83,6 +129,8 @@ def getCSVrow( headerrow, rowdict ):
 
 if __name__ == '__main__':
     parsed = json.load(sys.stdin)
+    #with open('rawData1.json') as json_data:
+    #    parsed = json.load(json_data)
 
     writer = csv.writer(sys.stdout, delimiter='|', quotechar='', quoting=csv.QUOTE_NONE)
 
