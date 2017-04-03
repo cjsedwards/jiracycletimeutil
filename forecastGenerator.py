@@ -3,6 +3,8 @@ import optparse
 import os
 import copy
 import numpy
+from statistics import median
+from math import isclose
 
 def parseOptions():
     parser = optparse.OptionParser()
@@ -11,10 +13,11 @@ def parseOptions():
     parser.add_option('-w', '--wiplimit', dest='wiplimit', help='Max number of work items in progress.')
     parser.add_option('-r', '--runs', dest='runs', help='Number of runs to execute in the Monte Carlo simulation')
     parser.add_option('-s', '--sprints', dest='sprints', help='Number of sprints in the upcoming release')
+    parser.add_option('-p', '--prevsprints', dest='prevsprints', help='Number of sprints in the jiradata, used to compute avg througput')
 
     (options, args) = parser.parse_args()
 
-    if( not options.jirafilename or not options.backlogfilename or not options.wiplimit or not options.runs or not options.sprints):
+    if( not options.jirafilename or not options.backlogfilename or not options.wiplimit or not options.runs or not options.sprints or not options.prevsprints):
         parser.print_help()
         exit()
 
@@ -65,7 +68,7 @@ def doRun( backlog, options, metadata ):
     pointCounts = []
     itemCounts = []
     for sprint in range(0, int(options.sprints)):
-        pointsCompleted = 0
+        pointsCompleted = 0.0
         itemsCompleted = 0
         storiesCompleted = 0
         for items in range( 0, metadata["throughput"]):
@@ -73,9 +76,9 @@ def doRun( backlog, options, metadata ):
                 break;
 
             itemsCompleted = itemsCompleted + 1
-            if( backlog[0]["Issue Type"] == "Story" ):
+            if( backlog[0]["Issue Type"] == "Story" and backlog[0]["Story Points"] != ""):
                 storiesCompleted = storiesCompleted + 1
-                pointsCompleted = pointsCompleted + int(backlog[0]["Story Points"])
+                pointsCompleted = pointsCompleted + float(backlog[0]["Story Points"])
 
             completed.append( backlog.pop(0) )
 
@@ -147,11 +150,53 @@ def computeStats( backlog, allruns, options ):
 
     return stats
 
+def storyPointFloat( storypoint ):
+    if( storypoint is None or storypoint == "" ):
+        return 0
+
+    return float( storypoint )
+
+# "Size" here means "The number of small things" that an issue was comprised
+# of, calculated roughly using how long it took relative to other things
+# that were completed
+# Note: This is different than story points, because points are an estimate
+#       and this is based on actual time it took to complete something
+# Second Note: I recognize this is kind of janky because I'm using cycle time
+#              to estimate size and that is wrong, but again, this is a rough
+#              way of doing with lack of something better.
+def addSizeToAllIssues( jiradata ):
+    cycleTimeOfOneSmallThing = 1.0 # worst case we use man-days
+
+    # Try to use a "1" to size things, if we have it
+    ones = [x for x in jiradata if isclose( storyPointFloat(x["Story Points"]), 1.0 ) and x["Issue Type"] == "Story"]
+    if( len(ones) > 0 ):
+        cycletimes = [int(issue["Cycle Time(Days)"]) for issue in ones]
+        cycleTimeOfOneSmallThing = median( cycletimes )
+    else:
+        # use bugs
+        bugs = [x for x in jiradata if x["Issue Type"] == "Bug"]
+        if( len(bugs) > 0 ):
+            cycletimes = [int(issue["Cycle Time(Days)"]) for issue in bugs]
+            cycleTimeOfOneSmallThing = median( cycletimes )
+
+    # The Size of an object is roughly the
+    for issue in jiradata:
+        issue["Size"] = round( int(issue["Cycle Time(Days)"]) / cycleTimeOfOneSmallThing, 0 )
+        if( issue["Size"] == 0 ):
+            issue["Size"] = 1.0 #Everything must be at least one small things
+
+def computeAvgThroughput( jiradata, options ):
+    sizes = [issue["Size"] for issue in jiradata]
+    throughput = int( round( sum( sizes ) / int(options.prevsprints), 0 ) )
+    return throughput
+
 if __name__ == '__main__':
     options = parseOptions()
     jiradata, backlogdata = readData( options )
 
     jiradata = onlyJirasWithInProgressDate( jiradata )
+
+    addSizeToAllIssues( jiradata )
 
     lives, bugs, stories = splitIssues( jiradata )
 
@@ -160,8 +205,8 @@ if __name__ == '__main__':
     metadata["bugs"] = getMetaData( bugs )
     metadata["stories"] = getMetaData( stories )
 
-    metadata["throughput"] = 2
-
+    metadata["throughput"] = computeAvgThroughput( jiradata, options )
+    print( metadata["throughput"])
     allruns = []
     for run in range( 0, int(options.runs)):
         runResult = doRun( backlogdata, options, metadata )
