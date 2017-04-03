@@ -9,8 +9,14 @@ The primary use case I was trying to solve was to calculate cycle times. The sta
 Takes into account when Jira issue moves is moved back into 'Open' state and than 'In Progress' at later point.
 
 **Usage**
+Querying Data from Jira:
 ```
 python3 queryJira.py --user=USERNAME --password=PASSWORD --jira=https://YOURJIRAURL --query="JQL QUERY HERE" | python JSONtoPSV.py > psvout.txt
+```
+
+Forecast Generator:
+```
+python3 forecastGenerator.py --jiradata=PATH_TO_JIRA_EXPORT --backlog=sampleBacklog.psv --wiplimit=4 --runs=1000 --sprints=5
 ```
 
 **Required Packages**
