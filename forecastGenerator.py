@@ -61,21 +61,34 @@ def doRun( backlog, options, metadata ):
     runResults = dict()
 
     completed = []
-    sprintResults = []
+    storyCounts = []
+    pointCounts = []
+    itemCounts = []
     for sprint in range(0, int(options.sprints)):
-        completedAtStart = len(completed)
-
+        pointsCompleted = 0
+        itemsCompleted = 0
+        storiesCompleted = 0
         for items in range( 0, metadata["throughput"]):
             if( len(backlog) == 0 ):
                 break;
 
+            itemsCompleted = itemsCompleted + 1
+            if( backlog[0]["Issue Type"] == "Story" ):
+                storiesCompleted = storiesCompleted + 1
+                pointsCompleted = pointsCompleted + int(backlog[0]["Story Points"])
+
             completed.append( backlog.pop(0) )
 
+
         completedAtEnd = len(completed)
-        sprintResults.append( completedAtEnd - completedAtStart )
+        storyCounts.append( storiesCompleted )
+        pointCounts.append( pointsCompleted )
+        itemCounts.append( itemsCompleted )
 
     runResults["completed"] = [issue["Key"] for issue in completed]
-    runResults["sprintResults"] = sprintResults
+    runResults["storyCounts"] = storyCounts
+    runResults["pointCounts"] = pointCounts
+    runResults["itemCounts"] = itemCounts
 
     return runResults
 
@@ -87,11 +100,11 @@ def computeChanceOfCompletion( key, allruns ):
 
     return count / len(allruns)
 
-def computeSprintStats( sprint, allruns ):
+def computeSprintStats( sprint, allruns, statname ):
     counts = []
 
     for run in allruns:
-        counts.append( run["sprintResults"][sprint] )
+        counts.append( run[statname][sprint] )
 
     counts.sort()
 
@@ -103,28 +116,34 @@ def computeSprintStats( sprint, allruns ):
 
     return stats
 
+def computeForecast( allruns, options, statname ):
+    result = dict()
+
+    result["P10"] = []
+    result["P50"] = []
+    result["P90"] = []
+    for sprint in range( 0, int(options.sprints) ):
+        sprintstats = computeSprintStats( sprint, allruns, statname )
+        result["P10"].append( sprintstats["P10"] )
+        result["P50"].append( sprintstats["P50"] )
+        result["P90"].append( sprintstats["P90"] )
+
+    return result
+
 def computeStats( backlog, allruns, options ):
-    completionChance = dict()
+    stats = dict()
+
+    stats["completionChance"] = dict()
+    completionChance = stats["completionChance"]
 
     for item in backlog:
         key = item["Key"]
         completionChance[key] = computeChanceOfCompletion( key, allruns )
 
-    sprintstats = []
-    P10 = []
-    P50 = []
-    P90 = []
-    for sprint in range( 0, int(options.sprints) ):
-        sprintstats.append( computeSprintStats( sprint, allruns ) )
-        P10.append( sprintstats[sprint]["P10"] )
-        P50.append( sprintstats[sprint]["P50"] )
-        P90.append( sprintstats[sprint]["P90"] )
 
-    stats = dict()
-    stats["completionChance"] = completionChance
-    stats["P10"] = P10
-    stats["P50"] = P50
-    stats["P90"] = P90
+    stats["storyForecasts"] = computeForecast( allruns, options, "storyCounts")
+    stats["pointForecasts"] = computeForecast( allruns, options, "pointCounts")
+    stats["itemForecasts"] = computeForecast( allruns, options, "itemCounts")
 
     return stats
 
