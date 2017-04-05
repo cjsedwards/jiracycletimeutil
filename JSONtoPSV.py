@@ -17,6 +17,7 @@ def getheaderrow():
     headerRow.append("Created Date")
     headerRow.append("In Progress Date")
     headerRow.append("Resolved Date")
+    headerRow.append("DevEscalation Date")
     headerRow.append("Fix Version/s")
     headerRow.append("Product Team")
     headerRow.append("Story Points")
@@ -72,6 +73,17 @@ def getInProgressDate( changelog ):
 
     return ""
 
+def getDevEscalationDate( changelog ):
+    sortedChangeLog = sorted(changelog, key=lambda x: x["created"])
+
+    for change in sortedChangeLog:
+        if( change["items"][0]["field"] == "status"):
+            toString = change["items"][0]["toString"]
+            if( toString == "Live: DevEscalated" ):
+                return change["created"]
+
+    return ""
+
 def getFieldsFromIssue( issue ):
     rowdict = dict()
     rowdict["Key"] = issue["key"]
@@ -93,6 +105,7 @@ def getFieldsFromIssue( issue ):
 
     rowdict["Created Date"] = createdDate
     rowdict["In Progress Date"] = startDate
+    rowdict["DevEscalation Date"] = getCleanDate( getDevEscalationDate( issue["changelog"]["histories"]) )
     rowdict["Resolved Date"] = endDate
     rowdict["Fix Version/s"] = fields["fixVersions"][0]["name"] if len(fields["fixVersions"]) > 0 else ""
     rowdict["Product Team"] = fields["customfield_13321"]["value"] if fields["customfield_13321"] is not None else ""
