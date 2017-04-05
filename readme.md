@@ -16,7 +16,7 @@ python3 queryJira.py --user=USERNAME --password=PASSWORD --jira=https://YOURJIRA
 
 Forecast Generator:
 ```
-python3 forecastGenerator.py --jiradata=PATH_TO_JIRA_EXPORT --backlog=sampleBacklog.psv --wiplimit=4 --runs=1000 --sprints=5
+python3 forecastGenerator.py -j history.psv -b backlog.psv -r 1000 -s 5 -p 5 -d 2017-02-20
 ```
 
 **Required Packages**
