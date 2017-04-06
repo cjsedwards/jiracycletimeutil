@@ -61,7 +61,7 @@ def doSprint( backlog, completed, storyCounts, pointCounts, itemCounts, options,
     throughput = throughputDist[randrange(len(throughputDist))]
     throughput = int(round( throughput, 0 ))
     throughput = throughput if throughput > 0 else 0
-    
+
     for items in range( 0, throughput):
         if( len(backlog) == 0 ):
             break;
@@ -86,21 +86,31 @@ def doRun( backlog, options, metadata ):
     storyCounts = []
     pointCounts = []
     itemCounts = []
+    completedPerSprint = []
     for sprint in range(0, int(options.sprints)):
-        doSprint( backlog, completed, storyCounts, pointCounts, itemCounts, options, metadata )
+        completedInSprint = []
+
+        doSprint( backlog, completedInSprint, storyCounts, pointCounts, itemCounts, options, metadata )
+
+        completed.extend( completedInSprint )
+        completedPerSprint.append( [issue["Key"] for issue in completedInSprint] )
 
     runResults["completed"] = [issue["Key"] for issue in completed]
     runResults["storyCounts"] = storyCounts
     runResults["pointCounts"] = pointCounts
     runResults["itemCounts"] = itemCounts
+    runResults["completedPerSprint"] = completedPerSprint
 
     return runResults
 
-def computeChanceOfCompletion( key, allruns ):
+def computeChanceOfCompletion( key, allruns, sprint ):
     count = 0
+
     for run in allruns:
-        if key in run["completed"]:
-            count = count + 1
+        for i in range( 0, int(sprint+1)):
+            if key in run["completedPerSprint"][i]:
+                count = count + 1
+                break
 
     return count / len(allruns)
 
@@ -142,8 +152,9 @@ def computeStats( backlog, allruns, options ):
 
     for item in backlog:
         key = item["Key"]
-        completionChance[key] = computeChanceOfCompletion( key, allruns )
-
+        completionChance[key] = []
+        for sprint in range( 0, int(options.sprints)):
+            completionChance[key].append( computeChanceOfCompletion( key, allruns, sprint ) )
 
     stats["storyForecasts"] = computeForecast( allruns, options, "storyCounts")
     stats["pointForecasts"] = computeForecast( allruns, options, "pointCounts")
@@ -194,7 +205,6 @@ if __name__ == '__main__':
     metadata["averageThroughput"] = statistics.mean( metadata["throughputPerSprint"])
     metadata["stddevThroughput"] = statistics.stdev( metadata["throughputPerSprint"])
 
-
     allruns = []
     for run in range( 0, int(options.runs)):
         runResult = doRun( backlogdata, options, metadata )
@@ -203,8 +213,17 @@ if __name__ == '__main__':
     finalStats = computeStats( backlogdata, allruns, options )
 
     writer = csv.writer(sys.stdout)
+    headerrow = []
+    headerrow.append( "Key")
+    for sprint in range( 0, int(options.sprints) ):
+        headerrow.append( "Sprint " + str(sprint + 1) )
+    writer.writerow( headerrow )
+
     for key, value in finalStats["completionChance"].items():
-       writer.writerow([key, value])
+        row = []
+        row.append( key )
+        row.extend( value )
+        writer.writerow(row)
 
     printForecasts( finalStats, "storyForecasts" )
     printForecasts( finalStats, "pointForecasts" )
