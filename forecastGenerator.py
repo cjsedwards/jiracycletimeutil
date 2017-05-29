@@ -177,7 +177,8 @@ def throughputPerSprint( jiradata, options ):
         completedPointsInSprint = [float(issue["Story Points"]) for issue in completedIssuesInSprint if issue["Story Points"] != ""]
 
         result.append( len (completedStoriesInSprint) )
-
+        print( startOfSprint )
+        print( len( completedStoriesInSprint) )
         startOfSprint = endOfSprint
 
     return result

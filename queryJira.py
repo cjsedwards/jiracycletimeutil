@@ -8,6 +8,7 @@ if __name__ == '__main__':
     parser.add_option('-p', '--password', dest='password', help='Password to access JIRA')
     parser.add_option('-j', '--jira', dest='jira_url', help='JIRA Base URL, ex: https://jira.atlassian.com')
     parser.add_option('-q', '--query', dest='query', help='JQL Query')
+    parser.add_option('-l', '--limit', dest='limit', help='Limit the number of records returned')
 
     (options, args) = parser.parse_args()
 
@@ -30,7 +31,7 @@ if __name__ == '__main__':
         results.append(parsed)
 
         count += maxResults
-        if (count >= total):
+        if (count >= total or (options.limit is not None and count >= int(options.limit))):
             break
 
     print(json.dumps(results))
