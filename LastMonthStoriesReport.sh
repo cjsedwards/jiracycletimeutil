@@ -9,8 +9,8 @@ OUT=~/JiraAnalysis
 
 src=~/Source/jiracycletimeutil
 
-#Five Sprint History
-python3 $src/queryJira.py -u $USERNAME -p $PASSWORD -j https://jira.solium.com --query="project in ('SW Product Development', 'Morgan Stanley', 'UBS') and resolved > -5w and issuetype = Story and status = Closed and resolution = Fixed" | python3 $src/JSONtoPSV.py > $OUT/AllTeamsFiveWeekHistory.txt
+#Five Sprint History - Completed Stories ( not dev escalated )
+python3 $src/queryJira.py -u $USERNAME -p $PASSWORD -j https://jira.solium.com --query="filter = 33571" | python3 $src/JSONtoPSV.py > $OUT/LastFiveWeeksNoDevEscalations.txt
 
-#Last Release
-python3 $src/queryJira.py -u $USERNAME -p $PASSWORD -j https://jira.solium.com --query="project in ('SW Product Development', 'Morgan Stanley', 'UBS') and fixVersion = $PREVRELEASE and issuetype = Story and status = Closed and resolution = Fixed" | python3 $src/JSONtoPSV.py > $OUT/AllTeamsPrevRelease.txt
+#Five Sprint History - Completed Stories  That were Dev Escalated
+python3 $src/queryJira.py -u $USERNAME -p $PASSWORD -j https://jira.solium.com --query="filter = 33572" | python3 $src/JSONtoPSV.py > $OUT/LastFiveWeeksOnlyDevEscalations.txt
